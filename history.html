@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCE Student Store - Shopping History</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🏫 DSCE Student Store</h1>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="cart.html" class="nav-link">
+                    Cart <span id="cartCount" class="cart-badge">0</span>
+                </a>
+                <a href="history.html" class="nav-link active">History</a>
+                <a href="#" id="userEmail" class="nav-link"></a>
+                <a href="#" id="logoutBtn" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <h2>My Shopping History</h2>
+            <button id="exportBtn" class="btn btn-secondary" style="display: none;">
+                📄 Export to Notepad
+            </button>
+        </div>
+
+        <div id="loadingMessage" style="text-align: center; padding: 2rem;">
+            <p>Loading your shopping history...</p>
+        </div>
+
+        <div id="historyContainer" style="display: none;">
+            <div id="historySummary" class="history-summary" style="display: none;">
+                <!-- Summary will be loaded here -->
+            </div>
+            <div id="historyList" class="orders-list">
+                <!-- History items will be loaded here -->
+            </div>
+
+            <div id="emptyHistory" class="empty-cart" style="display: none;">
+                <p>No shopping history found</p>
+                <a href="home.html" class="btn btn-primary">Start Shopping</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/history.js"></script>
+    <script>
+        // Check authentication
+        if (!auth.isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        // Display user email
+        document.getElementById('userEmail').textContent = auth.getCurrentUser();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            products.init();
+            cart.updateCartCount();
+            await loadShoppingHistory();
+            
+            // Export button functionality
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.addEventListener('click', async () => {
+                exportBtn.disabled = true;
+                exportBtn.textContent = 'Exporting...';
+                
+                const userEmail = auth.getCurrentUser();
+                // Get products data from localStorage
+                const productsData = JSON.parse(localStorage.getItem('products') || '[]');
+                const result = await historyAPI.exportHistoryAsText(userEmail, productsData);
+                
+                exportBtn.disabled = false;
+                exportBtn.textContent = '📄 Export to Notepad';
+                
+                if (result.success) {
+                    showToast('History exported successfully!');
+                } else {
+                    showToast(result.message || 'Failed to export history. Please try again.');
+                }
+            });
+        });
+
+        async function loadShoppingHistory() {
+            const userEmail = auth.getCurrentUser();
+            const loadingMessage = document.getElementById('loadingMessage');
+            const historyContainer = document.getElementById('historyContainer');
+            const historyList = document.getElementById('historyList');
+            const emptyHistory = document.getElementById('emptyHistory');
+
+            try {
+                // Load history (from localStorage + backend)
+                const history = await historyAPI.getUserHistory(userEmail);
+                
+                loadingMessage.style.display = 'none';
+                historyContainer.style.display = 'block';
+
+                if (history.length === 0) {
+                    emptyHistory.style.display = 'block';
+                    historyList.innerHTML = '';
+                    document.getElementById('exportBtn').style.display = 'none';
+                    document.getElementById('historySummary').style.display = 'none';
+                    return;
+                }
+
+                emptyHistory.style.display = 'none';
+                historyList.innerHTML = '';
+                document.getElementById('exportBtn').style.display = 'block';
+
+                // Display summary
+                displayHistorySummary(history);
+
+                history.forEach(order => {
+                    const historyCard = document.createElement('div');
+                    historyCard.className = 'order-card';
+                    
+                    const orderTotal = calculateOrderTotal(order);
+                    const placedDate = new Date(order.placedAt).toLocaleString();
+                    
+                    const itemsHtml = order.items.map(item => {
+                        const product = products.getProductById(item.id);
+                        if (product) {
+                            const itemTotal = product.price * item.quantity;
+                            return `<div class="history-item">
+                                <span class="history-item-name">${product.name}</span>
+                                <span class="history-item-details">${item.quantity} × ₹${product.price} = ₹${itemTotal}</span>
+                            </div>`;
+                        }
+                        return `<div class="history-item">
+                            <span class="history-item-name">Item ID: ${item.id}</span>
+                            <span class="history-item-details">Quantity: ${item.quantity}</span>
+                        </div>`;
+                    }).join('');
+
+                    // Show cancellation info if cancelled
+                    let cancelledInfo = '';
+                    if (order.status === 'cancelled' && order.cancelledAt) {
+                        const cancelledDate = new Date(order.cancelledAt).toLocaleString();
+                        cancelledInfo = `<div class="history-info-item cancelled-info">
+                            <strong>❌ Cancelled:</strong> ${cancelledDate}
+                        </div>`;
+                    }
+
+                    // Show delivery info if delivered
+                    let deliveredInfo = '';
+                    if (order.status === 'delivered' && order.deliveredAt) {
+                        const deliveredDate = new Date(order.deliveredAt).toLocaleString();
+                        deliveredInfo = `<div class="history-info-item delivered-info">
+                            <strong>✅ Delivered:</strong> ${deliveredDate}
+                        </div>`;
+                    }
+
+                    // Contact info
+                    let contactInfo = '';
+                    if (order.name || order.phone) {
+                        contactInfo = `<div class="history-info-item">
+                            <strong>Contact:</strong> ${order.name || 'N/A'}${order.phone ? ` | ${order.phone}` : ''}
+                        </div>`;
+                    }
+
+                    // Notes info
+                    let notesInfo = '';
+                    if (order.notes && order.notes.trim()) {
+                        notesInfo = `<div class="history-info-item">
+                            <strong>Notes:</strong> ${order.notes}
+                        </div>`;
+                    }
+
+                    historyCard.innerHTML = `
+                        <div class="order-card-header">
+                            <div>
+                                <span class="order-id">${order.orderId || order.id}</span>
+                                <p class="order-date">${placedDate}</p>
+                            </div>
+                            <span class="order-status ${order.status || 'pending'}">${(order.status || 'pending').toUpperCase()}</span>
+                        </div>
+                        <div class="history-section">
+                            <strong class="history-section-title">📦 Items Ordered:</strong>
+                            <div class="history-items-list">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                        ${contactInfo}
+                        <div class="history-info-item">
+                            <strong>📍 Delivery Address:</strong> ${order.address || 'N/A'}
+                        </div>
+                        ${notesInfo}
+                        ${cancelledInfo}
+                        ${deliveredInfo}
+                        <div class="history-total">
+                            <strong>Total Amount: ₹${orderTotal}</strong>
+                        </div>
+                    `;
+
+                    historyList.appendChild(historyCard);
+                });
+            } catch (error) {
+                console.error('Error loading shopping history:', error);
+                loadingMessage.innerHTML = '<p style="color: var(--danger-color);">Failed to load shopping history. Please try again later.</p>';
+            }
+        }
+
+        function calculateOrderTotal(order) {
+            const products = JSON.parse(localStorage.getItem('products') || '[]');
+            let total = 0;
+
+            order.items.forEach(item => {
+                const product = products.find(p => p.id === item.id);
+                if (product) {
+                    total += product.price * item.quantity;
+                }
+            });
+
+            return total;
+        }
+
+        function displayHistorySummary(history) {
+            const summaryContainer = document.getElementById('historySummary');
+            const totalOrders = history.length;
+            const pendingOrders = history.filter(o => o.status === 'pending').length;
+            const deliveredOrders = history.filter(o => o.status === 'delivered').length;
+            const cancelledOrders = history.filter(o => o.status === 'cancelled').length;
+            
+            let totalSpent = 0;
+            history.forEach(order => {
+                if (order.status !== 'cancelled') {
+                    totalSpent += calculateOrderTotal(order);
+                }
+            });
+
+            summaryContainer.innerHTML = `
+                <div class="summary-card">
+                    <h3>📊 Order Summary</h3>
+                    <div class="summary-stats">
+                        <div class="summary-stat">
+                            <span class="stat-label">Total Orders</span>
+                            <span class="stat-value">${totalOrders}</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-label">Pending</span>
+                            <span class="stat-value pending">${pendingOrders}</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-label">Delivered</span>
+                            <span class="stat-value delivered">${deliveredOrders}</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-label">Cancelled</span>
+                            <span class="stat-value cancelled">${cancelledOrders}</span>
+                        </div>
+                        <div class="summary-stat total-spent">
+                            <span class="stat-label">Total Spent</span>
+                            <span class="stat-value">₹${totalSpent}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            summaryContainer.style.display = 'block';
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout?')) {
+                auth.logout();
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>
+

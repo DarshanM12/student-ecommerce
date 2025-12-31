@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCE Student Store - Order Confirmation</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🏫 DSCE Student Store</h1>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="cart.html" class="nav-link">Cart</a>
+                <a href="#" id="userEmail" class="nav-link"></a>
+                <a href="#" id="logoutBtn" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="order-confirmation">
+            <div class="success-icon">✓</div>
+            <h2>Order Placed Successfully!</h2>
+            <p class="order-id">Order ID: <strong id="orderId">-</strong></p>
+
+            <div class="order-details" id="orderDetails">
+                <!-- Order details will be loaded here -->
+            </div>
+
+            <div class="cancel-order-section" id="cancelSection">
+                <div class="cancel-timer">
+                    <p>Cancel order — available for <span id="timer">12</span> seconds</p>
+                </div>
+                <button id="cancelOrderBtn" class="btn btn-danger">Cancel Order</button>
+            </div>
+
+            <div class="order-actions">
+                <a href="home.html" class="btn btn-primary">Continue Shopping</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/orders.js"></script>
+    <script>
+        // Check authentication
+        if (!auth.isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        // Display user email
+        document.getElementById('userEmail').textContent = auth.getCurrentUser();
+
+        let orderId = null;
+        let cancelTimer = null;
+        let timeLeft = 12; // 12 seconds
+
+        document.addEventListener('DOMContentLoaded', () => {
+            products.init();
+            
+            const params = new URLSearchParams(window.location.search);
+            orderId = params.get('id');
+
+            if (!orderId) {
+                window.location.href = 'home.html';
+                return;
+            }
+
+            loadOrderDetails();
+            startCancelTimer();
+        });
+
+        function loadOrderDetails() {
+            const order = orders.getOrder(orderId);
+            if (!order) {
+                window.location.href = 'home.html';
+                return;
+            }
+
+            document.getElementById('orderId').textContent = orderId;
+
+            const detailsContainer = document.getElementById('orderDetails');
+            let total = 0;
+
+            const orderItemsHtml = order.items.map(item => {
+                const product = products.getProductById(item.id);
+                if (product) {
+                    const itemTotal = product.price * item.quantity;
+                    total += itemTotal;
+                    return `
+                        <div class="order-item-detail">
+                            <div>
+                                <strong>${product.name}</strong>
+                                <p>Qty: ${item.quantity} × ₹${product.price}</p>
+                            </div>
+                            <div>₹${itemTotal}</div>
+                        </div>
+                    `;
+                }
+                return '';
+            }).join('');
+
+            detailsContainer.innerHTML = `
+                <div class="detail-section">
+                    <h3>Delivery Information</h3>
+                    <p><strong>Name:</strong> ${order.name}</p>
+                    <p><strong>Phone:</strong> ${order.phone}</p>
+                    <p><strong>Address:</strong> ${order.address}</p>
+                    ${order.notes ? `<p><strong>Notes:</strong> ${order.notes}</p>` : ''}
+                </div>
+                <div class="detail-section">
+                    <h3>Items</h3>
+                    ${orderItemsHtml}
+                </div>
+                <div class="detail-section total-section">
+                    <p><strong>Total Amount:</strong> ₹${total}</p>
+                </div>
+            `;
+        }
+
+        function startCancelTimer() {
+            const order = orders.getOrder(orderId);
+            if (!order) return;
+
+            const cancelTime = order.placedAt + (12 * 1000); // 12 seconds
+            const now = Date.now();
+
+            if (now >= cancelTime) {
+                disableCancel();
+                return;
+            }
+
+            timeLeft = Math.floor((cancelTime - now) / 1000);
+
+            cancelTimer = setInterval(() => {
+                timeLeft--;
+                
+                document.getElementById('timer').textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(cancelTimer);
+                    disableCancel();
+                }
+            }, 1000);
+        }
+
+        function disableCancel() {
+            clearInterval(cancelTimer);
+            const cancelSection = document.getElementById('cancelSection');
+            cancelSection.innerHTML = '<p class="cancel-disabled">Cancellation time has expired</p>';
+        }
+
+        document.getElementById('cancelOrderBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to cancel this order?')) {
+                if (orders.cancelOrder(orderId)) {
+                    showToast('Order cancelled successfully');
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 2000);
+                } else {
+                    showToast('Failed to cancel order');
+                }
+            }
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+

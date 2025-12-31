@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCE Student Store - Products</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🏫 DSCE Student Store</h1>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="cart.html" class="nav-link">
+                    Cart <span id="cartCount" class="cart-badge">0</span>
+                </a>
+                <a href="history.html" class="nav-link">History</a>
+                <a href="#" id="userEmail" class="nav-link"></a>
+                <a href="#" id="logoutBtn" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="home.html" class="back-link">← Back to Home</a>
+            <h2 id="pageTitle">Products</h2>
+            <div class="sort-controls">
+                <label for="sortSelect">Sort by:</label>
+                <select id="sortSelect" class="sort-select">
+                    <option value="default">Default</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="name">Name: A to Z</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="products-grid" id="productsGrid">
+            <!-- Products will be loaded here -->
+        </div>
+
+        <div class="no-products" id="noProducts" style="display: none;">
+            <p>No products found.</p>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/cart.js"></script>
+    <script>
+        // Check authentication
+        if (!auth.isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        // Display user email
+        document.getElementById('userEmail').textContent = auth.getCurrentUser();
+
+        let currentProducts = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            products.init();
+            cart.updateCartCount();
+            loadProducts();
+            setupSorting();
+        });
+
+        function loadProducts() {
+            const params = new URLSearchParams(window.location.search);
+            const category = params.get('category');
+            const searchQuery = params.get('search');
+
+            const grid = document.getElementById('productsGrid');
+            const pageTitle = document.getElementById('pageTitle');
+            grid.innerHTML = '';
+
+            if (category) {
+                currentProducts = products.getProductsByCategory(category);
+                const categoryInfo = products.getCategoryById(category);
+                pageTitle.textContent = categoryInfo ? categoryInfo.name : 'Products';
+            } else if (searchQuery) {
+                currentProducts = products.searchProducts(searchQuery);
+                pageTitle.textContent = `Search: ${searchQuery}`;
+            } else {
+                currentProducts = products.getAllProducts();
+            }
+
+            if (currentProducts.length === 0) {
+                document.getElementById('noProducts').style.display = 'block';
+                return;
+            }
+
+            displayProducts(currentProducts);
+        }
+
+        function displayProducts(productsList) {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+
+            productsList.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="product-image">
+                        <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/200?text=${encodeURIComponent(product.name)}'">
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">${product.name}</h3>
+                        <p class="product-price">₹${product.price}</p>
+                        <button class="btn btn-primary add-to-cart" data-id="${product.id}">
+                            Add to Cart
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Add event listeners
+            document.querySelectorAll('.add-to-cart').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const productId = e.target.getAttribute('data-id');
+                    const product = productsList.find(p => p.id === productId);
+                    if (product) {
+                        cart.addToCart(product);
+                        showToast(`${product.name} added to cart!`);
+                    }
+                });
+            });
+        }
+
+        function setupSorting() {
+            const sortSelect = document.getElementById('sortSelect');
+            sortSelect.addEventListener('change', () => {
+                const value = sortSelect.value;
+                let sorted = [...currentProducts];
+
+                switch(value) {
+                    case 'price-low':
+                        sorted.sort((a, b) => a.price - b.price);
+                        break;
+                    case 'price-high':
+                        sorted.sort((a, b) => b.price - a.price);
+                        break;
+                    case 'name':
+                        sorted.sort((a, b) => a.name.localeCompare(b.name));
+                        break;
+                    default:
+                        sorted = currentProducts;
+                }
+
+                displayProducts(sorted);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+

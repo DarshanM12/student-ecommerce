@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCE Student Store - Cart</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🏫 DSCE Student Store</h1>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="cart.html" class="nav-link active">
+                    Cart <span id="cartCount" class="cart-badge">0</span>
+                </a>
+                <a href="history.html" class="nav-link">History</a>
+                <a href="#" id="userEmail" class="nav-link"></a>
+                <a href="#" id="logoutBtn" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>Your Cart</h2>
+        </div>
+
+        <div class="cart-container">
+            <div class="cart-items" id="cartItems">
+                <!-- Cart items will be loaded here -->
+            </div>
+
+            <div class="cart-summary">
+                <h3>Order Summary</h3>
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotal">₹0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Items:</span>
+                    <span id="totalItems">0</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total:</span>
+                    <span id="total">₹0</span>
+                </div>
+                <button id="checkoutBtn" class="btn btn-primary btn-block" disabled>Proceed to Checkout</button>
+                <a href="home.html" class="btn btn-secondary btn-block">Continue Shopping</a>
+            </div>
+        </div>
+
+        <div class="empty-cart" id="emptyCart" style="display: none;">
+            <p>Your cart is empty</p>
+            <a href="home.html" class="btn btn-primary">Start Shopping</a>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/cart.js"></script>
+    <script>
+        // Check authentication
+        if (!auth.isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        // Display user email
+        document.getElementById('userEmail').textContent = auth.getCurrentUser();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            products.init();
+            loadCart();
+        });
+
+        function loadCart() {
+            const cartItems = cart.getCart();
+            const cartItemsContainer = document.getElementById('cartItems');
+            const emptyCart = document.getElementById('emptyCart');
+            const checkoutBtn = document.getElementById('checkoutBtn');
+
+            if (cartItems.length === 0) {
+                cartItemsContainer.innerHTML = '';
+                emptyCart.style.display = 'block';
+                checkoutBtn.disabled = true;
+                updateSummary(0, 0);
+                return;
+            }
+
+            emptyCart.style.display = 'none';
+            checkoutBtn.disabled = false;
+            cartItemsContainer.innerHTML = '';
+
+            let subtotal = 0;
+            let totalItems = 0;
+
+            cartItems.forEach(item => {
+                const product = products.getProductById(item.id);
+                if (product) {
+                    const itemTotal = product.price * item.quantity;
+                    subtotal += itemTotal;
+                    totalItems += item.quantity;
+
+                    const cartItem = document.createElement('div');
+                    cartItem.className = 'cart-item';
+                    cartItem.innerHTML = `
+                        <div class="cart-item-image">
+                            <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/100?text=${encodeURIComponent(product.name)}'">
+                        </div>
+                        <div class="cart-item-info">
+                            <h3>${product.name}</h3>
+                            <p class="cart-item-price">₹${product.price} each</p>
+                        </div>
+                        <div class="cart-item-controls">
+                            <button class="quantity-btn" onclick="updateQuantity('${item.id}', -1)">-</button>
+                            <span class="quantity">${item.quantity}</span>
+                            <button class="quantity-btn" onclick="updateQuantity('${item.id}', 1)">+</button>
+                        </div>
+                        <div class="cart-item-total">
+                            <p>₹${itemTotal}</p>
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart('${item.id}')">×</button>
+                    `;
+                    cartItemsContainer.appendChild(cartItem);
+                }
+            });
+
+            updateSummary(subtotal, totalItems);
+        }
+
+        function updateQuantity(productId, change) {
+            cart.updateQuantity(productId, change);
+            loadCart();
+            cart.updateCartCount();
+            showToast('Cart updated');
+        }
+
+        function removeFromCart(productId) {
+            cart.removeFromCart(productId);
+            loadCart();
+            cart.updateCartCount();
+            showToast('Item removed from cart');
+        }
+
+        function updateSummary(subtotal, totalItems) {
+            document.getElementById('subtotal').textContent = `₹${subtotal}`;
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('total').textContent = `₹${subtotal}`;
+        }
+
+        document.getElementById('checkoutBtn').addEventListener('click', () => {
+            window.location.href = 'checkout.html';
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+

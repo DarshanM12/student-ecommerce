@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSCE Student Store - Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">🏫 DSCE Admin Panel</h1>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Store</a>
+                <a href="#" id="logoutBtn" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="admin-header">
+            <h2>Admin Dashboard</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Sales</h3>
+                    <p id="totalSales">₹0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Orders</h3>
+                    <p id="totalOrders">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending Orders</h3>
+                    <p id="pendingOrders">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Products</h3>
+                    <p id="totalProducts">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="showTab('orders', this)">Orders</button>
+            <button class="tab-btn" onclick="showTab('products', this)">Products</button>
+            <button class="tab-btn" onclick="showTab('cancellations', this)">Cancellations</button>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="ordersTab" class="tab-content active">
+            <div class="tab-header">
+                <h3>All Orders</h3>
+            </div>
+            <div id="ordersList" class="orders-list">
+                <!-- Orders will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Products Tab -->
+        <div id="productsTab" class="tab-content">
+            <div class="tab-header">
+                <h3>Product Management</h3>
+                <button class="btn btn-primary" onclick="openProductModal()">Add New Product</button>
+            </div>
+            <div id="productsList" class="products-list">
+                <!-- Products will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Cancellations Tab -->
+        <div id="cancellationsTab" class="tab-content">
+            <div class="tab-header">
+                <h3>Cancellation Logs</h3>
+            </div>
+            <div id="cancellationsList" class="cancellations-list">
+                <!-- Cancellations will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProductModal()">&times;</span>
+            <h3 id="modalTitle">Add Product</h3>
+            <form id="productForm">
+                <input type="hidden" id="editProductId">
+                <div class="form-group">
+                    <label for="prodName">Product Name</label>
+                    <input type="text" id="prodName" required>
+                </div>
+                <div class="form-group">
+                    <label for="prodPrice">Price (₹)</label>
+                    <input type="number" id="prodPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="prodImage">Image URL</label>
+                    <input type="url" id="prodImage" required>
+                </div>
+                <div class="form-group">
+                    <label for="prodCategory">Category</label>
+                    <select id="prodCategory" required>
+                        <option value="stationery">Stationery</option>
+                        <option value="id-cards">ID Cards & Lanyards</option>
+                        <option value="lab-materials">Lab Materials</option>
+                        <option value="sports">Sports Items</option>
+                        <option value="snacks">Snacks</option>
+                        <option value="raincoat">Raincoat & Umbrella</option>
+                        <option value="electronics">Electronics Accessories</option>
+                        <option value="others">Others</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Save Product</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/admin.js"></script>
+    <script>
+        // Check if admin
+        if (!auth.isAuthenticated() || auth.getCurrentUser() !== 'admin@dsce.in') {
+            window.location.href = 'index.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            products.init();
+            admin.loadDashboard();
+            showTab('orders');
+        });
+
+        function showTab(tabName, buttonElement) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(`${tabName}Tab`).classList.add('active');
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+            }
+
+            // Load tab content
+            if (tabName === 'orders') {
+                admin.loadOrders();
+            } else if (tabName === 'products') {
+                admin.loadProducts();
+            } else if (tabName === 'cancellations') {
+                admin.loadCancellations();
+            }
+        }
+
+        function openProductModal(productId = null) {
+            const modal = document.getElementById('productModal');
+            const form = document.getElementById('productForm');
+            const title = document.getElementById('modalTitle');
+            form.reset();
+
+            if (productId) {
+                title.textContent = 'Edit Product';
+                const product = products.getProductById(productId);
+                if (product) {
+                    document.getElementById('editProductId').value = productId;
+                    document.getElementById('prodName').value = product.name;
+                    document.getElementById('prodPrice').value = product.price;
+                    document.getElementById('prodImage').value = product.image;
+                    document.getElementById('prodCategory').value = product.category;
+                }
+            } else {
+                title.textContent = 'Add Product';
+                document.getElementById('editProductId').value = '';
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        document.getElementById('productForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const productId = document.getElementById('editProductId').value;
+            const productData = {
+                name: document.getElementById('prodName').value,
+                price: parseFloat(document.getElementById('prodPrice').value),
+                image: document.getElementById('prodImage').value,
+                category: document.getElementById('prodCategory').value
+            };
+
+            if (productId) {
+                admin.updateProduct(productId, productData);
+            } else {
+                admin.addProduct(productData);
+            }
+
+            closeProductModal();
+            admin.loadProducts();
+            admin.loadDashboard();
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('productModal');
+            if (event.target == modal) {
+                closeProductModal();
+            }
+        }
+    </script>
+</body>
+</html>
+
