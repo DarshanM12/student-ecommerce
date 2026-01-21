@@ -112,6 +112,10 @@
                     orderItemsContainer.appendChild(orderItem);
                 }
             });
+           // if(total>1000){
+            //    let finalpayable=total*0.90; //10% discount
+             //   document.getElementById('orderTotal').textContent = `₹${finalpayable} (10% discount applied)`;
+           //}  change here by removing the next line in discount
 
             document.getElementById('orderTotal').textContent = `₹${total}`;
         }

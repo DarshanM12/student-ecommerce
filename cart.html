@@ -146,10 +146,17 @@
         }
 
         function updateSummary(subtotal, totalItems) {
+            //let finalamt=subtotal;
+            //if(subtotal>1000){
+            //    finalamt=subtotal*0.90;
+               //document.getElementById('total').textContent = `₹${finalamt} (10% discount applied)`;
+            //}else{
+               // document.getElementById('total').textContent = `₹${finalamt}`;
+           // }
             document.getElementById('subtotal').textContent = `₹${subtotal}`;
             document.getElementById('totalItems').textContent = totalItems;
-            document.getElementById('total').textContent = `₹${subtotal}`;
-        }
+            document.getElementById('total').textContent = `₹${subtotal}`;// for discount comment last two lines
+      }
 
         document.getElementById('checkoutBtn').addEventListener('click', () => {
             window.location.href = 'checkout.html';

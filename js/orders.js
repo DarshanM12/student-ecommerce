@@ -170,6 +170,9 @@ const orders = {
                 total += product.price * item.quantity;
             }
         });
+        //if(total>1000){
+          //  total=total*0.90; // Apply 10% discount
+        //}
 
         return total;
     },
