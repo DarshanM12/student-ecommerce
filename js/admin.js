@@ -9,11 +9,13 @@ const admin = {
         const allProducts = products.getAllProducts();
         const totalSales = orders.getTotalSales();
         const pendingOrders = allOrders.filter(o => o.status === 'pending').length;
+        const totalFeedback = this.getFeedbacks().length;
 
         document.getElementById('totalSales').textContent = `₹${totalSales}`;
         document.getElementById('totalOrders').textContent = allOrders.length;
         document.getElementById('pendingOrders').textContent = pendingOrders;
         document.getElementById('totalProducts').textContent = allProducts.length;
+        document.getElementById('totalFeedback').textContent = totalFeedback;
     },
 
     // Load orders list
@@ -151,6 +153,55 @@ const admin = {
 
             container.appendChild(cancellationCard);
         });
+    },
+
+    // Load feedback list
+    loadFeedback() {
+        const feedbacks = this.getFeedbacks();
+        const container = document.getElementById('feedbackList');
+        container.innerHTML = '';
+
+        if (feedbacks.length === 0) {
+            container.innerHTML = '<p class="no-products">No feedback submitted yet.</p>';
+            return;
+        }
+
+        // Sort by newest first
+        const sortedFeedbacks = [...feedbacks].sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+
+        sortedFeedbacks.forEach(feedback => {
+            const feedbackCard = document.createElement('div');
+            feedbackCard.className = 'feedback-card';
+            
+            const submittedDate = new Date(feedback.submittedAt).toLocaleString();
+
+            feedbackCard.innerHTML = `
+                <div class="feedback-card-header">
+                    <div>
+                        <strong>${feedback.userEmail || 'User'}</strong>
+                        <p style="margin-top: 0.25rem; color: var(--text-secondary); font-size: 0.875rem;">
+                            ${submittedDate}
+                        </p>
+                    </div>
+                </div>
+                ${feedback.orderId ? `
+                    <div class="feedback-order-info">
+                        <strong>Order ID:</strong> ${feedback.orderId}
+                    </div>
+                ` : ''}
+                <div class="feedback-message">
+                    <p>${feedback.message}</p>
+                </div>
+            `;
+
+            container.appendChild(feedbackCard);
+        });
+    },
+
+    // Get feedbacks from localStorage
+    getFeedbacks() {
+        const feedbacks = localStorage.getItem('feedbacks');
+        return feedbacks ? JSON.parse(feedbacks) : [];
     },
 
     // Add product

@@ -12,6 +12,13 @@
             <div class="logo">
                 <h1>🏫 DSCE Student Store</h1>
                 <p>Welcome to Dayananda Sagar Institutions</p>
+                <button type="button" id="toggleBtn" class="btn btn-secondary btn-block" style="margin-top: 1rem;">
+    Show Store Info
+</button>
+
+<div id="infoSection" style="display: none; margin-top: 1rem; padding: 1rem; background: red; border-radius: 8px;">
+    <p>Welcome! Our store is open from 9 AM to 5 PM daily.</p>
+</div>
             </div>
             <form id="loginForm">
                 <div class="form-group">
@@ -47,6 +54,19 @@
                 errorMessage.style.display = 'block';
             }
         });
+         document.getElementById('toggleBtn').addEventListener('click', () => {
+         const section = document.getElementById('infoSection');
+           const btn = document.getElementById('toggleBtn');
+
+    
+        if (section.style.display === 'none') {
+        section.style.display = 'block'; 
+        btn.textContent = 'Hide Store Info'; 
+         } else {
+        section.style.display = 'none'; 
+        btn.textContent = 'Show Store Info'; 
+        }
+         });
     </script>
 </body>
 </html>

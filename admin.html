@@ -37,6 +37,10 @@
                     <h3>Total Products</h3>
                     <p id="totalProducts">0</p>
                 </div>
+                <div class="stat-card">
+                    <h3>Customer Feedback</h3>
+                    <p id="totalFeedback">0</p>
+                </div>
             </div>
         </div>
 
@@ -44,6 +48,7 @@
             <button class="tab-btn active" onclick="showTab('orders', this)">Orders</button>
             <button class="tab-btn" onclick="showTab('products', this)">Products</button>
             <button class="tab-btn" onclick="showTab('cancellations', this)">Cancellations</button>
+            <button class="tab-btn" onclick="showTab('feedback', this)">Feedback</button>
         </div>
 
         <!-- Orders Tab -->
@@ -74,6 +79,16 @@
             </div>
             <div id="cancellationsList" class="cancellations-list">
                 <!-- Cancellations will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Feedback Tab -->
+        <div id="feedbackTab" class="tab-content">
+            <div class="tab-header">
+                <h3>Customer Feedback</h3>
+            </div>
+            <div id="feedbackList" class="feedback-list">
+                <!-- Feedback will be loaded here -->
             </div>
         </div>
     </div>
@@ -155,6 +170,8 @@
                 admin.loadProducts();
             } else if (tabName === 'cancellations') {
                 admin.loadCancellations();
+            } else if (tabName === 'feedback') {
+                admin.loadFeedback();
             }
         }
 

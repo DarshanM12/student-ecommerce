@@ -939,6 +939,67 @@ body {
 }
 
 /* ============================================
+   FEEDBACK CARD STYLES
+   ============================================ */
+
+.feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.feedback-card {
+    background: var(--card-bg);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+}
+
+.feedback-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.feedback-rating-display {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 1rem;
+}
+
+.feedback-order-info {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: var(--bg-color);
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.feedback-message {
+    margin-top: 1rem;
+}
+
+.feedback-message strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.feedback-message p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* ============================================
    HISTORY PAGE STYLES
    ============================================ */
 
@@ -1095,6 +1156,55 @@ body {
 
 .stat-value.cancelled {
     color: #991b1b;
+}
+
+/* ============================================
+   FEEDBACK FORM STYLES
+   ============================================ */
+
+.rating-container {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 0.5rem 0;
+    flex-direction: row-reverse;
+}
+
+.rating-container input[type="radio"] {
+    display: none;
+}
+
+.rating-star {
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    filter: grayscale(100%);
+    opacity: 0.4;
+    user-select: none;
+    line-height: 1;
+}
+
+.rating-star:hover {
+    filter: grayscale(0%);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.rating-container input[type="radio"]:checked + .rating-star,
+.rating-container input[type="radio"]:checked + .rating-star ~ .rating-star {
+    filter: grayscale(0%);
+    opacity: 1;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
 }
 
 /* ============================================

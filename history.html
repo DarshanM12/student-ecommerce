@@ -25,9 +25,14 @@
     <div class="container">
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <h2>My Shopping History</h2>
-            <button id="exportBtn" class="btn btn-secondary" style="display: none;">
-                📄 Export to Notepad
-            </button>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button id="feedbackBtn" class="btn btn-primary">
+                    💬 Give Feedback
+                </button>
+                <button id="exportBtn" class="btn btn-secondary" style="display: none;">
+                    📄 Export to Notepad
+                </button>
+            </div>
         </div>
 
         <div id="loadingMessage" style="text-align: center; padding: 2rem;">
@@ -46,6 +51,22 @@
                 <p>No shopping history found</p>
                 <a href="home.html" class="btn btn-primary">Start Shopping</a>
             </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeFeedbackModal()">&times;</span>
+            <h3>Share Your Feedback</h3>
+            <form id="feedbackForm">
+                <input type="hidden" id="feedbackOrderId">
+                <div class="form-group">
+                    <label for="feedbackMessage">Your Feedback</label>
+                    <textarea id="feedbackMessage" rows="6" placeholder="Write your feedback here..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Submit Feedback</button>
+            </form>
         </div>
     </div>
 
@@ -90,7 +111,79 @@
                     showToast(result.message || 'Failed to export history. Please try again.');
                 }
             });
+
+            // Feedback button functionality
+            const feedbackBtn = document.getElementById('feedbackBtn');
+            feedbackBtn.addEventListener('click', () => {
+                openFeedbackModal();
+            });
         });
+
+        function openFeedbackModal(orderId = null) {
+            const modal = document.getElementById('feedbackModal');
+            const form = document.getElementById('feedbackForm');
+            
+            // Pre-select order ID if provided
+            if (orderId) {
+                document.getElementById('feedbackOrderId').value = orderId;
+            } else {
+                document.getElementById('feedbackOrderId').value = '';
+            }
+            
+            form.reset();
+            modal.style.display = 'block';
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModal').style.display = 'none';
+            document.getElementById('feedbackForm').reset();
+        }
+
+        // Feedback form submission
+        document.getElementById('feedbackForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const feedbackMessage = document.getElementById('feedbackMessage').value.trim();
+            const orderId = document.getElementById('feedbackOrderId').value || null;
+            
+            if (!feedbackMessage) {
+                showToast('Please enter your feedback');
+                return;
+            }
+            
+            const feedback = {
+                id: 'FB' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase(),
+                message: feedbackMessage,
+                orderId: orderId,
+                submittedAt: Date.now(),
+                userEmail: auth.getCurrentUser()
+            };
+            
+            // Save feedback
+            saveFeedback(feedback);
+            
+            showToast('Thank you for your feedback!');
+            closeFeedbackModal();
+        });
+
+        function saveFeedback(feedback) {
+            const feedbacks = getFeedbacks();
+            feedbacks.push(feedback);
+            localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
+        }
+
+        function getFeedbacks() {
+            const feedbacks = localStorage.getItem('feedbacks');
+            return feedbacks ? JSON.parse(feedbacks) : [];
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('feedbackModal');
+            if (event.target === modal) {
+                closeFeedbackModal();
+            }
+        };
 
         async function loadShoppingHistory() {
             const userEmail = auth.getCurrentUser();
@@ -183,7 +276,12 @@
                                 <span class="order-id">${order.orderId || order.id}</span>
                                 <p class="order-date">${placedDate}</p>
                             </div>
-                            <span class="order-status ${order.status || 'pending'}">${(order.status || 'pending').toUpperCase()}</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                <span class="order-status ${order.status || 'pending'}">${(order.status || 'pending').toUpperCase()}</span>
+                                <button class="btn btn-small btn-secondary" onclick="openFeedbackModal('${order.orderId || order.id}')" title="Give feedback for this order">
+                                    💬 Feedback
+                                </button>
+                            </div>
                         </div>
                         <div class="history-section">
                             <strong class="history-section-title">📦 Items Ordered:</strong>
